@@ -1,12 +1,12 @@
 #include "window.h"
+#include <SDL3/SDL.h>
 #include <print>
 
-#define SDL_CHECK(ok)                                                          \
-  do {                                                                         \
-    if (!(ok)) {                                                               \
-      std::println(stderr, "SDL error ({}, {}): {}", __FILE__, __LINE__,       \
-                   SDL_GetError());                                            \
-    }                                                                          \
+#define SDL_CHECK(result)                                                                                              \
+  do {                                                                                                                 \
+    if (!(result)) {                                                                                                   \
+      return std::unexpected(std::format("SDL error ({}, {}): {}", __FILE__, __LINE__, SDL_GetError()));               \
+    }                                                                                                                  \
   } while (0)
 
 namespace ccb {
@@ -20,4 +20,6 @@ std::expected<Window, std::string> Window::create(int w, int h) {
 
   return Window(handle);
 }
+
+void Window::Deleter::operator()(SDL_Window *w) const noexcept { SDL_DestroyWindow(w); }
 } // namespace ccb

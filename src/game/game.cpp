@@ -1,7 +1,19 @@
-#include <print>
 #include <engine/window.h>
+#include <engine/renderer.h>
+#include <print>
 
-int main() { 
-	auto window = ccb::Window::create(900, 900);
-	std::println("Hello world");
+int main() {
+  auto window = ccb::Window::create(900, 900);
+  if (!window) {
+    std::println(stderr, "{}", window.error());
+    return 1;
+  }
+  
+  auto renderer = ccb::Renderer::create();
+  if (!renderer) {
+    std::println(stderr, "{}", renderer.error());
+    return 1;
+  }
+
+  std::println("Hello world");
 }
