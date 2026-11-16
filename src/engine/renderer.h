@@ -11,15 +11,15 @@ using Microsoft::WRL::ComPtr;
 
 class Renderer {
 public:
-  [[nodiscard]] static std::expected<Renderer, std::string> create();
+  [[nodiscard]] static std::expected<Renderer, std::string> create(void *window_handle, uint32_t window_w, uint32_t window_h);
 
 private:
   explicit Renderer() noexcept;
 
-  ComPtr<IDXGIFactory2> m_factory{nullptr};
-  ComPtr<ID3D11Device> m_device{nullptr};
-  ComPtr<ID3D11DeviceContext> m_ctx{nullptr};
-  ComPtr<IDXGISwapChain1> m_swapchain{nullptr};
-  ComPtr<ID3D11RenderTargetView> m_render_target{nullptr};
+  ComPtr<IDXGIFactory2> m_factory{};
+  ComPtr<ID3D11Device> m_device{};
+  ComPtr<ID3D11DeviceContext> m_ctx{};
+  ComPtr<IDXGISwapChain1> m_swapchain{};
+  ComPtr<ID3D11RenderTargetView> m_render_target{};
 };
 } // namespace ccb

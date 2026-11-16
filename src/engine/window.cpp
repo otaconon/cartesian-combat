@@ -21,5 +21,12 @@ std::expected<Window, std::string> Window::create(int w, int h) {
   return Window(handle);
 }
 
+void* Window::get_native_handle() {
+  SDL_PropertiesID props = SDL_GetWindowProperties(m_handle.get());
+  return SDL_GetPointerProperty(props, SDL_PROP_WINDOW_WIN32_HWND_POINTER, nullptr); 
+}
+
+WindowDim Window::get_dim() { return m_dim; }
+
 void Window::Deleter::operator()(SDL_Window *w) const noexcept { SDL_DestroyWindow(w); }
 } // namespace ccb
