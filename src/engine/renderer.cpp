@@ -1,6 +1,7 @@
 #include "renderer.h"
 
 #include <format>
+#include "error.h"
 
 #define DX11_CHECK(result, msg)                                                                                        \
   do {                                                                                                                 \
@@ -9,11 +10,22 @@
     }                                                                                                                  \
   } while (0)
 
+
 namespace ccb {
 Renderer::Renderer() noexcept {}
 
-std::expected<Renderer, std::string> Renderer::create(void *native_win_handle, uint32_t window_w, uint32_t window_h) {
-  Renderer r{};
+std::expected<void, std::string> Renderer::init_render_target() { 
+  ComPtr<ID3D11Texture2D> back_buffer{};
+  DX11_CHECK(m_swapchain->GetBuffer(0, IID_PPV_ARGS(&back_buffer)), "Failed to get back buffer from swapchain");
+  DX11_CHECK(m_device->CreateRenderTargetView(back_buffer.Get(), nullptr, &m_render_target),
+             "Failed to create render target view");
+}
+
+std::expected<Renderer, std::string> Renderer::create(void *native_win_handle, uint32_t width, uint32_t height) {
+  Renderer r;
+  r.m_width = width;
+  r.m_height = height;
+
   HWND hwnd = static_cast<HWND>(native_win_handle);
   if (!hwnd) {
     return std::unexpected("Failed to convert windown handle into hwnd");
@@ -27,8 +39,8 @@ std::expected<Renderer, std::string> Renderer::create(void *native_win_handle, u
                                D3D11_SDK_VERSION, &r.m_device, nullptr, &r.m_ctx),
              "Failed to create dx11 device");
 
-  DXGI_SWAP_CHAIN_DESC1 swapchain_desc{.Width = window_w,
-                                       .Height = window_h,
+  DXGI_SWAP_CHAIN_DESC1 swapchain_desc{.Width = width,
+                                       .Height = height,
                                        .Format = DXGI_FORMAT_R8G8B8A8_UNORM,
                                        .SampleDesc{.Count = 1, .Quality = 0},
                                        .BufferUsage = DXGI_USAGE_RENDER_TARGET_OUTPUT,
@@ -39,11 +51,31 @@ std::expected<Renderer, std::string> Renderer::create(void *native_win_handle, u
   DX11_CHECK(r.m_factory->CreateSwapChainForHwnd(r.m_device.Get(), hwnd, &swapchain_desc, &fullscreen_desc, nullptr,
                                                  &r.m_swapchain),
              "Failed to create dxgi swapchain");
+
+  r.init_render_target();
   
-  ComPtr<ID3D11Texture2D> back_buffer{};
-  DX11_CHECK(r.m_swapchain->GetBuffer(0, IID_PPV_ARGS(&back_buffer)), "Failed to get back buffer from swapchain");
-  DX11_CHECK(r.m_device->CreateRenderTargetView(back_buffer.Get(), nullptr, &r.m_render_target),
-             "Failed to create render target view");
   return r;
+}
+std::expected<void, std::string> Renderer::on_resize(uint32_t width, uint32_t height) {
+  m_width = width;
+  m_height = height;
+  m_ctx->Flush();
+  m_render_target.Reset();
+  DX11_CHECK(m_swapchain->ResizeBuffers(0, m_width, m_height, DXGI_FORMAT::DXGI_FORMAT_R8G8B8A8_UNORM, 0),
+             "Failed to resize swapchain buffers");
+  RETURN_IF_ERROR((init_render_target()));
+}
+void Renderer::render() {
+  D3D11_VIEWPORT viewport{.TopLeftX = 0,
+                          .TopLeftY = 0,
+                          .Width = static_cast<float>(m_width),
+                          .Height = static_cast<float>(m_height),
+                          .MinDepth = 0.0f,
+                          .MaxDepth = 1.0f};
+  constexpr float clear_color[] = {0.1f, 0.1f, 0.1f, 1.0f};
+  m_ctx->ClearRenderTargetView(m_render_target.Get(), clear_color);
+  m_ctx->RSSetViewports(1, &viewport);
+  m_ctx->OMSetRenderTargets(1, m_render_target.GetAddressOf(), nullptr);
+  m_swapchain->Present(1, 0);
 }
 } // namespace ccb

@@ -27,7 +27,11 @@ void* Window::get_native_handle() {
   return SDL_GetPointerProperty(props, SDL_PROP_WINDOW_WIN32_HWND_POINTER, nullptr); 
 }
 
-WindowDim Window::get_dim() { return m_dim; }
+std::pair<int, int> Window::get_dim() {
+  std::pair<int, int> dim{};
+  SDL_GetWindowSize(m_handle.get(), &dim.first, &dim.second);
+  return dim;
+}
 
 void Window::Deleter::operator()(SDL_Window *w) const noexcept { SDL_DestroyWindow(w); }
 } // namespace ccb
