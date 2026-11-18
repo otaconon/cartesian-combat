@@ -1,23 +1,16 @@
 #include "renderer.h"
 
-#include <format>
 #include "error.h"
-
-#define DX11_CHECK(result, msg)                                                                                        \
-  do {                                                                                                                 \
-    if (FAILED(result)) {                                                                                              \
-      return std::unexpected(std::format("DX11 error {:#x} ({}, {}): {}", result, __FILE__, __LINE__, msg));           \
-    }                                                                                                                  \
-  } while (0)
+#include <format>
 
 
 namespace ccb {
 Renderer::Renderer() noexcept {}
 
-std::expected<void, std::string> Renderer::init_render_target() { 
+std::expected<void, std::string> Renderer::init_render_target() {
   ComPtr<ID3D11Texture2D> back_buffer{};
-  DX11_CHECK(m_swapchain->GetBuffer(0, IID_PPV_ARGS(&back_buffer)), "Failed to get back buffer from swapchain");
-  DX11_CHECK(m_device->CreateRenderTargetView(back_buffer.Get(), nullptr, &m_render_target),
+  DX_CHECK(m_swapchain->GetBuffer(0, IID_PPV_ARGS(&back_buffer)), "Failed to get back buffer from swapchain");
+  DX_CHECK(m_device->CreateRenderTargetView(back_buffer.Get(), nullptr, &m_render_target),
              "Failed to create render target view");
 }
 
@@ -31,11 +24,11 @@ std::expected<Renderer, std::string> Renderer::create(void *native_win_handle, u
     return std::unexpected("Failed to convert windown handle into hwnd");
   }
 
-  DX11_CHECK((CreateDXGIFactory1(IID_PPV_ARGS(&r.m_factory))), "Failed to create dxgi factory");
+  DX_CHECK((CreateDXGIFactory1(IID_PPV_ARGS(&r.m_factory))), "Failed to create dxgi factory");
   r.m_factory->MakeWindowAssociation(hwnd, DXGI_MWA_NO_ALT_ENTER);
 
   constexpr D3D_FEATURE_LEVEL device_feature_level = D3D_FEATURE_LEVEL::D3D_FEATURE_LEVEL_11_0;
-  DX11_CHECK(D3D11CreateDevice(nullptr, D3D_DRIVER_TYPE_HARDWARE, nullptr, 0, &device_feature_level, 1,
+  DX_CHECK(D3D11CreateDevice(nullptr, D3D_DRIVER_TYPE_HARDWARE, nullptr, 0, &device_feature_level, 1,
                                D3D11_SDK_VERSION, &r.m_device, nullptr, &r.m_ctx),
              "Failed to create dx11 device");
 
@@ -48,12 +41,12 @@ std::expected<Renderer, std::string> Renderer::create(void *native_win_handle, u
                                        .SwapEffect = DXGI_SWAP_EFFECT::DXGI_SWAP_EFFECT_FLIP_DISCARD};
 
   DXGI_SWAP_CHAIN_FULLSCREEN_DESC fullscreen_desc{.Windowed = true};
-  DX11_CHECK(r.m_factory->CreateSwapChainForHwnd(r.m_device.Get(), hwnd, &swapchain_desc, &fullscreen_desc, nullptr,
+  DX_CHECK(r.m_factory->CreateSwapChainForHwnd(r.m_device.Get(), hwnd, &swapchain_desc, &fullscreen_desc, nullptr,
                                                  &r.m_swapchain),
              "Failed to create dxgi swapchain");
 
   r.init_render_target();
-  
+
   return r;
 }
 std::expected<void, std::string> Renderer::on_resize(uint32_t width, uint32_t height) {
@@ -61,7 +54,7 @@ std::expected<void, std::string> Renderer::on_resize(uint32_t width, uint32_t he
   m_height = height;
   m_ctx->Flush();
   m_render_target.Reset();
-  DX11_CHECK(m_swapchain->ResizeBuffers(0, m_width, m_height, DXGI_FORMAT::DXGI_FORMAT_R8G8B8A8_UNORM, 0),
+  DX_CHECK(m_swapchain->ResizeBuffers(0, m_width, m_height, DXGI_FORMAT::DXGI_FORMAT_R8G8B8A8_UNORM, 0),
              "Failed to resize swapchain buffers");
   RETURN_IF_ERROR((init_render_target()));
 }
@@ -77,5 +70,8 @@ void Renderer::render() {
   m_ctx->RSSetViewports(1, &viewport);
   m_ctx->OMSetRenderTargets(1, m_render_target.GetAddressOf(), nullptr);
   m_swapchain->Present(1, 0);
+}
+ComPtr<ID3D11Device> Renderer::get_device() { 
+  return m_device;
 }
 } // namespace ccb

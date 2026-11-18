@@ -3,7 +3,7 @@ set(SOURCES
  "window.h"
  "renderer.cpp"
  "renderer.h"
- "error.h")
+ "error.h" "shader.h" "shader.cpp")
 
 add_library(cartesian_combat_engine STATIC ${SOURCES})
 add_library(ccb::engine ALIAS cartesian_combat_engine)

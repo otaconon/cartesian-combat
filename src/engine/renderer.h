@@ -15,6 +15,8 @@ public:
   [[nodiscard]] std::expected<void, std::string> on_resize(uint32_t width, uint32_t height);
   void render();
 
+  [[nodiscard]] ComPtr<ID3D11Device> get_device();
+
 private:
   explicit Renderer() noexcept;
 

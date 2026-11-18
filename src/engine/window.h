@@ -11,7 +11,7 @@ namespace ccb {
 class Window {
 public:
   [[nodiscard]] static std::expected<Window, std::string> create(int w, int h);
-  [[nodiscard]] void *get_native_handle();
+  [[nodiscard]] void *get_native_handle(); // TODO: Change to get_hwnd
   [[nodiscard]] std::pair<int, int> get_dim();
 
 private:
